@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"neversaynevernz/zinx/ziface"
@@ -19,6 +20,18 @@ type Server struct {
 
 	// 服务器监听的端口
 	Port int
+}
+
+func CallBackToCLient(conn *net.TCPConn, data []byte, cnt int) error {
+
+	fmt.Println("[Conn Handle] CallBackToCLient...")
+
+	if _, err := conn.Write(data[:cnt]); err != nil {
+		fmt.Println("write back buf err")
+		return errors.New("CallBackToCLient Error")
+	}
+
+	return nil
 }
 
 // 启动服务器
@@ -41,6 +54,8 @@ func (s *Server) Start() error {
 		}
 		defer listener.Close()
 
+		fmt.Println("start zinx server success", s.Name, "Listening...")
+
 		// 阻塞的等待客户端链接 处理客户端链接业务(读写)
 		for {
 			conn, err := listener.AcceptTCP()
@@ -49,10 +64,15 @@ func (s *Server) Start() error {
 				continue
 			}
 
-			// 已经建立链接 做一个回显业务
-			// 这里我们又开了一个协程 处理客户端的链接业务
-			// 这样做的好处是 可以同时处理多个客户端链接
-			go s.handleConnection(conn)
+			// 初始化ID
+			var cid uint32
+			cid = 0
+
+			// 新链接业务方法 和 conn 绑定
+			dealConn := NewConnection(conn, cid, CallBackToCLient)
+			cid++
+
+			go dealConn.Start()
 		}
 	}()
 
@@ -75,24 +95,6 @@ func (s *Server) Serve() error {
 	select {}
 
 	return nil
-}
-
-func (s *Server) handleConnection(conn net.Conn) {
-	defer conn.Close()
-	buf := make([]byte, 512)
-	for {
-		n, err := conn.Read(buf)
-		if err != nil {
-			return
-			continue
-		}
-
-		fmt.Printf("recv client buf %s, cnt: %d\n", buf[:n], n) // 回显业务
-		_, err = conn.Write(buf[:n])
-		if err != nil {
-			return
-		}
-	}
 }
 
 /*
