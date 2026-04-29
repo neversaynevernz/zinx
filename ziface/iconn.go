@@ -4,7 +4,7 @@ import "net"
 
 // 链接模块的抽象层
 
-type IConn interface {
+type IConnection interface {
 
 	// 启动链接 让当前的链接准备开始工作
 	Start()

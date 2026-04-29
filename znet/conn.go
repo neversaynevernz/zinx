@@ -23,16 +23,19 @@ type Connection struct {
 
 	// 告知当前链接停止的 chan
 	ExitChan chan bool
+
+	// 当前链接处理的 方法 Router
+	Router ziface.IRouter
 }
 
 // 初始化链接
-func NewConnection(conn *net.TCPConn, connID uint32, handleAPI ziface.HandleFunc) *Connection {
+func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) *Connection {
 	return &Connection{
-		Conn:      conn,
-		ConnID:    connID,
-		handleAPI: handleAPI,
-		isClosed:  false,
-		ExitChan:  make(chan bool),
+		Conn:     conn,
+		ConnID:   connID,
+		Router:   router,
+		isClosed: false,
+		ExitChan: make(chan bool),
 	}
 }
 
@@ -44,17 +47,25 @@ func (c *Connection) StartReader() {
 	for {
 		// 读取客户的数据到缓存中
 		buf := make([]byte, 512)
-		cnt, err := c.Conn.Read(buf)
+		_, err := c.Conn.Read(buf)
 		if err != nil {
 			fmt.Println("recv buf err:", err)
 			continue
 		}
 
-		// 调用当前链接绑定的 handleAPI
-		if err := c.handleAPI(c.Conn, buf, cnt); err != nil {
-			fmt.Printf("Connection[%d], handle err: %s\n", c.ConnID, err)
-			break
+		// 得到当前conn数据的Request请求数据
+		req := Request{
+			conn: c,
+			data: buf,
 		}
+
+		// 执行注册的路由方法
+		go func(req ziface.IRequest) {
+			// 从路由中 找到注册绑定的 conn 对应的 router调用
+			c.Router.PreHandle(req)
+			c.Router.Handle(req)
+			c.Router.PostHandle(req)
+		}(&req)
 	}
 }
 

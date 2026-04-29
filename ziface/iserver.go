@@ -6,9 +6,10 @@ type IServer interface {
 	Start() error
 
 	// 停止服务器
-	Stop() error	
+	Stop() error
 
 	// 运行服务器
 	Serve() error
-}	
 
+	AddRouter(router IRouter)
+}
