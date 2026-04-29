@@ -3,7 +3,8 @@ package znet
 import (
 	"fmt"
 	"net"
-	"neversaynevernz/zinx/ziface"
+
+	"github.com/neversaynevernz/zinx/ziface"
 )
 
 // 实现链接模块

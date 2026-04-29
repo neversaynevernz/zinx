@@ -2,8 +2,8 @@ package znet
 
 import (
 	"fmt"
+	"github.com/neversaynevernz/zinx/ziface"
 	"net"
-	"neversaynevernz/zinx/ziface"
 )
 
 type Server struct {

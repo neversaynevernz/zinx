@@ -1,6 +1,6 @@
 package znet
 
-import "neversaynevernz/zinx/ziface"
+import "github.com/neversaynevernz/zinx/ziface"
 
 type Request struct {
 
