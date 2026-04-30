@@ -3,6 +3,7 @@ package znet
 import (
 	"errors"
 	"fmt"
+	"github.com/neversaynevernz/zinx/utils"
 	"io"
 	"net"
 
@@ -48,6 +49,7 @@ func NewConnection(conn *net.TCPConn, connID uint32, msgHandler ziface.IMsgHandl
 }
 
 func (c *Connection) StartReader() {
+
 	fmt.Println("[Reader Goroutine is running]")
 	defer fmt.Printf("[Reader Goroutine is exit!], connID[%d], remote addr: %s\n", c.ConnID, c.RemoteAddr().String())
 	defer c.Stop()
@@ -89,9 +91,14 @@ func (c *Connection) StartReader() {
 			msg:  msg,
 		}
 
-		// 从路由中 找到注册绑定的 conn 对应的 router调用
-		// 根据绑定好的MsgID 找到对应的api业务处理
-		go c.MsgHandler.DoMsgHandler(&req)
+		if utils.GlobalObject.WorkerPoolSize > 0 {
+			// 已经开启了工作池机制， 将消息发送给Worker工作池处理即可
+			c.MsgHandler.SendMsgToTaskQueue(&req)
+		} else {
+			// 从路由中 找到注册绑定的 conn 对应的 router调用
+			// 根据绑定好的MsgID 找到对应的api业务处理
+			go c.MsgHandler.DoMsgHandler(&req)
+		}
 	}
 }
 
