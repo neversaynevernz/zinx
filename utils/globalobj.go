@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/neversaynevernz/zinx/ziface"
 	"os"
 )
@@ -30,7 +31,17 @@ var confpath string = "conf/zinx.json"
 
 var GlobalObject *GlobalObj
 
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return !errors.Is(err, os.ErrNotExist)
+}
+
 func (g *GlobalObj) Reload() {
+
+	if ok := fileExists(confpath); !ok {
+		return
+	}
+
 	data, err := os.ReadFile(confpath)
 	if err != nil {
 		panic(err)
@@ -49,7 +60,7 @@ func (g *GlobalObj) Reload() {
 func init() {
 	GlobalObject = &GlobalObj{
 		Name:           "ZinxServerApp",
-		Version:        "v1.3.0",
+		Version:        "v1.4.0",
 		TcpPort:        8999,
 		Host:           "0.0.0.0",
 		MaxConn:        1024,
