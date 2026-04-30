@@ -56,6 +56,10 @@ func (s *Server) Start() error {
 
 		fmt.Println("start zinx server success", s.Name, "Listening...")
 
+		// 初始化ID
+		var cid uint32
+		cid = 0
+
 		// 阻塞的等待客户端链接 处理客户端链接业务(读写)
 		for {
 			conn, err := listener.AcceptTCP()
@@ -63,10 +67,6 @@ func (s *Server) Start() error {
 				fmt.Println("Accept err", err)
 				continue
 			}
-
-			// 初始化ID
-			var cid uint32
-			cid = 0
 
 			// 新链接业务方法 和 conn 绑定
 			dealConn := NewConnection(conn, cid, s.MsgHandler)
