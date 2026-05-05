@@ -28,6 +28,12 @@ type Server struct {
 
 	// 该 server 的链接管理器
 	ConnMgr ziface.IConnManager
+
+	// 该server创建链接之后自动调用Hook函数 --OnConnStart
+	OnConnStart func(conn ziface.IConnection)
+
+	// 该server销毁链接之后自动调用Hook函数 --OnConnStop
+	OnConnStop func(conn ziface.IConnection)
 }
 
 // 启动服务器
@@ -141,4 +147,30 @@ func NewServer(name string) ziface.IServer {
 		ConnMgr:    NewConnManager(),
 	}
 	return s
+}
+
+// 注册 OnConnStart钩子函数的方法
+func (s *Server) SetOnConnStart(hookFunc func(conn ziface.IConnection)) {
+	s.OnConnStart = hookFunc
+}
+
+// 注册 OnConnStart钩子函数的方法
+func (s *Server) SetOnConnStop(hookFunc func(conn ziface.IConnection)) {
+	s.OnConnStop = hookFunc
+}
+
+// 调用 OnConnStop钩子函数的方法
+func (s *Server) CallOnConnStart(conn ziface.IConnection) {
+	if s.OnConnStart != nil {
+		fmt.Println("[Zinx] Call OnConnStart success")
+		s.OnConnStart(conn)
+	}
+}
+
+// 调用 OnConnStop钩子函数的方法
+func (s *Server) CallOnConnStop(conn ziface.IConnection) {
+	if s.OnConnStop != nil {
+		fmt.Println("[Zinx] Call OnConnStop success")
+		s.OnConnStop(conn)
+	}
 }
