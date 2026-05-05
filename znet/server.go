@@ -5,6 +5,7 @@ import (
 	"github.com/neversaynevernz/zinx/utils"
 	"github.com/neversaynevernz/zinx/ziface"
 	"net"
+	"runtime"
 )
 
 type Server struct {
@@ -24,10 +25,16 @@ type Server struct {
 	// 当前的 server 的消息管理模块
 	// 用来绑定MsgID和对应的处理业务API 关系
 	MsgHandler ziface.IMsgHandler
+
+	// 该 server 的链接管理器
+	ConnMgr ziface.IConnManager
 }
 
 // 启动服务器
 func (s *Server) Start() error {
+
+	runtime.GOMAXPROCS(1)
+
 	fmt.Printf("[Zinx] Server Name : %s, listenner at IP: %s, Port: %d is starting\n",
 		utils.GlobalObject.Name,
 		utils.GlobalObject.Host,
@@ -73,8 +80,16 @@ func (s *Server) Start() error {
 				continue
 			}
 
+			// 设置最大链接个数的判断. 如果超过最大连接数则关闭此新的链接
+			if s.ConnMgr.Len() >= utils.GlobalObject.MaxConn {
+				//TODO 给客户端相应一个超出最大链接的错误包
+				fmt.Println("[Zinx] MaxConn exceeded = ", utils.GlobalObject.MaxConn)
+				conn.Close()
+				continue
+			}
+
 			// 新链接业务方法 和 conn 绑定
-			dealConn := NewConnection(conn, cid, s.MsgHandler)
+			dealConn := NewConnection(s, conn, cid, s.MsgHandler)
 			cid++
 
 			go dealConn.Start()
@@ -85,9 +100,10 @@ func (s *Server) Start() error {
 }
 
 // 停止服务器
-func (s *Server) Stop() error {
+func (s *Server) Stop() {
 	// TODO 将一些服务器的资源或者一些已经开辟的链接进行停止或者回收
-	return nil
+	fmt.Println("[Stop] Zinx Server Name:", utils.GlobalObject.Name)
+	s.ConnMgr.ClearConn()
 }
 
 // 运行服务器
@@ -108,6 +124,10 @@ func (s *Server) AddRouter(msgid uint32, router ziface.IRouter) {
 	fmt.Println("[Zinx] Add Router Success")
 }
 
+func (s *Server) GetConnManager() ziface.IConnManager {
+	return s.ConnMgr
+}
+
 /*
 初始化Server模块
 */
@@ -118,6 +138,7 @@ func NewServer(name string) ziface.IServer {
 		IP:         utils.GlobalObject.Host,
 		Port:       utils.GlobalObject.TcpPort,
 		MsgHandler: NewMsgHandle(),
+		ConnMgr:    NewConnManager(),
 	}
 	return s
 }

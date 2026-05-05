@@ -13,6 +13,9 @@ import (
 // 实现链接模块
 type Connection struct {
 
+	// 当前Conn隶属于哪个Server
+	TcpServer ziface.IServer
+
 	//当前链接的套接字
 	Conn *net.TCPConn
 
@@ -37,8 +40,9 @@ type Connection struct {
 }
 
 // 初始化链接
-func NewConnection(conn *net.TCPConn, connID uint32, msgHandler ziface.IMsgHandler) *Connection {
-	return &Connection{
+func NewConnection(server ziface.IServer, conn *net.TCPConn, connID uint32, msgHandler ziface.IMsgHandler) *Connection {
+	c := &Connection{
+		TcpServer:  server,
 		Conn:       conn,
 		ConnID:     connID,
 		MsgHandler: msgHandler,
@@ -46,6 +50,11 @@ func NewConnection(conn *net.TCPConn, connID uint32, msgHandler ziface.IMsgHandl
 		msgChan:    make(chan []byte),
 		ExitChan:   make(chan bool, 1),
 	}
+
+	//将 conn 加入到 ConnManager 中
+	c.TcpServer.GetConnManager().Add(c)
+
+	return c
 }
 
 func (c *Connection) StartReader() {
@@ -153,6 +162,9 @@ func (c *Connection) Stop() {
 
 	// 告知 Writer 关闭
 	c.ExitChan <- true
+
+	// 将当前链从 ConnMgr 中摘除掉
+	c.TcpServer.GetConnManager().Remove(c)
 
 	// 回收资源
 	close(c.ExitChan)
